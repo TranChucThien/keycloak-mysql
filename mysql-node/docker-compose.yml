@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.0.23
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecretpassword
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak_user
+      MYSQL_PASSWORD: keycloak_password
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: --bind-address=0.0.0.0 --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql_data:
+    driver: local

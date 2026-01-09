@@ -1,0 +1,50 @@
+
+
+services:
+  mysql:
+    image: mysql:8.0.23
+    container_name: keycloak-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecretpassword
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak_user
+      MYSQL_PASSWORD: keycloak_password
+    volumes:
+      # This ensures your database data persists across restarts
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - keycloak-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:12.0.4
+    container_name: keycloak
+    restart: always
+    environment:
+      # Database configuration
+      DB_VENDOR: MYSQL
+      DB_ADDR: mysql # Uses the MySQL service name as the hostname
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      JDBC_PARAMS: "connectTimeout=30000" # Optional JDBC parameters
+
+      # Keycloak admin credentials for initial setup
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - keycloak-net
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  keycloak-net:
+    driver: bridge
