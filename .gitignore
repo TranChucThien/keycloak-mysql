@@ -1,0 +1,23 @@
+# Docker volumes
+mysql_data/
+
+# Deployment artifacts
+deployments/*.jar.deployed
+deployments/*.jar.failed
+deployments/*.jar.dodeploy
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# internal source code
+aje-keycloak-token-mapper-k8s-prod/
+deployments/

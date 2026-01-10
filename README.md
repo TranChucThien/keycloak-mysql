@@ -1,290 +1,374 @@
 # Keycloak 12 + MySQL 8 Lab Environment
 
-## 🎯 Purpose
-Lab environment to test Keycloak 12 with MySQL 8 database, preparing for upgrade to higher versions (17/20/26).
+## **🎯 Purpose**
 
-## 🚀 Quick Start
+Lab environment to test Keycloak 12 with MySQL 8 database and custom token mappers, preparing for upgrade to higher versions (17/20/26).
 
-### 1. Start services
+## **📁 Project Structure**
+
+```
+keycloak-mysql/
+├── aje-keycloak-token-mapper-k8s-prod/  # Custom mapper source code
+│   ├── src/main/java/                   # Java mapper classes
+│   │   ├── BranchOIDCProtocolMapper.java   # Branch mapper
+│   │   ├── CifOIDCProtocolMapper.java      # Customer ID mapper
+│   │   ├── UserLevelOIDCProtocolMapper.java # User level mapper
+│   │   └── PermissionsOIDCProtocolMapper.java # Permissions mapper
+│   ├── src/main/resources/META-INF/     # Service registration
+│   │   ├── services/org.keycloak.protocol.ProtocolMapper  # Mapper registration
+│   │   └── jboss-deployment-structure.xml # JBoss configuration
+│   ├── pom.xml                          # Maven config
+│   └── Dockerfile                       # Build container
+├── deployments/                         # JAR files for Keycloak
+├── images/                             # Documentation images
+├── docker-compose.yml                   # Main compose file
+├── README.md                           # This file
+└── .gitignore                          # Git ignore rules
+
+```
+
+## **🔑 Standard Credentials**
+
+### **Keycloak Admin**
+
+- **URL:** [http://localhost:8080/auth](http://localhost:8080/auth)
+- **Username:** `admin`
+- **Password:** `admin_password`
+
+### **MySQL Database**
+
+- **Host:** localhost:3306
+- **Database:** `keycloak`
+- **User:** `keycloak_user`
+- **Password:** `keycloak_password`
+- **Root Password:** `supersecretpassword`
+
+### **Test Data (Standard)**
+
+- **Realm:** `test-realm`
+- **Client:** `test-client`
+- **Test User:** `customer1` / `test123`
+- **Customer ID Attribute:** `CIF001234567`
+- **Branch Attribute:** `MAIN_BRANCH`
+
+## **🚀 Quick Start**
+
+### **Step 1: Build Custom Mapper**
+
 ```bash
+# Build custom token mapper JAR
+docker-compose --profile build run --rm build-mapper
+```
+
+### **Step 2: Start Services**
+
+```bash
+# Start Keycloak + MySQL
 docker-compose up -d
-```
 
-### 2. Check containers
-```bash
-docker ps
-```
-Expected result:
-- `keycloak-mysql` → **Up**
-- `keycloak` → **Up**
-
-### 3. Access Keycloak
-- URL: http://localhost:8080/auth
-- Admin: `admin` / `admin_password`
-
----
-
-## 🔍 Testing Guide - From Basic to Advanced
-
-### 1️⃣ Check Container Status
-
-```bash
-# View all containers
+# Check containers status
 docker ps
 
-# If Keycloak keeps restarting, check logs immediately
-docker logs -f keycloak
 ```
 
 **Expected result:**
-- Both containers are **Up**
-- No restart loops
 
----
+- `keycloak-mysql` → **Up**
+- `keycloak` → **Up**
 
-### 2️⃣ Verify Keycloak MySQL Connection (MOST IMPORTANT)
+![Containers Status](images/containers-status.png)
+
+→ MySQL and Keycloak are up and running
+
+### **Step 3: Access Keycloak**
+
+- **URL:** [http://localhost:8080/auth](http://localhost:8080/auth)
+- **Login:** `admin` / `admin_password`
+
+![Keycloak Admin Console](images/keycloak-admin-console.png)
+
+## **🧪 Custom Token Mappers**
+
+### **Overview**
+
+Custom OIDC Protocol Mapper for Keycloak 12 to add custom claims to JWT tokens.
+
+**What is a Token Mapper?**
+
+- Extension plugin for Keycloak
+- Allows adding custom information to JWT tokens
+- Example: adding branch, customer ID, user permissions to tokens
+
+**Why Custom Mappers?**
+
+- Keycloak default only has basic claims (username, email, roles)
+- Organizations need additional business information (branch, customer ID, permissions)
+- Custom mappers automatically add these claims from user attributes
+
+### **Available Mappers in this source**
+
+- **BranchOIDCProtocolMapper** - Adds `branch` claim
+- **CifOIDCProtocolMapper** - Adds `customer_id` claim
+- **UserLevelOIDCProtocolMapper** - Adds `user_level` claim
+- **PermissionsOIDCProtocolMapper** - Adds `permissions` claim
+
+### 
+
+## **🔍 Basic Testing**
+
+### **1. Container Health Check**
 
 ```bash
-# View Keycloak logs
+# View containers
+docker ps
+
+# Check Keycloak logs
 docker logs -f keycloak
+
 ```
 
-**✅ CORRECT signs in logs:**
-```text
+**✅ Success indicators:**
+
+```
 Using MySQL database
-Driver: com.mysql.cj.jdbc.Driver
-HHH000204: Processing PersistenceUnitInfo [name: keycloak-default]
 Keycloak 12.0.4 (WildFly Core 13.0.3.Final) started
+Deployed "aje-claim-1.0-SNAPSHOT.jar"
+
 ```
 
-**❌ WRONG signs (need immediate fix):**
-```text
-Communications link failure
-Access denied for user
-Cannot create PoolableConnectionFactory
-```
-
----
-
-### 3️⃣ Verify Database Actually Contains Data
+### **2. Database Connection Test**
 
 ```bash
-# Enter MySQL container
+# Connect to MySQL
 docker exec -it keycloak-mysql mysql -u keycloak_user -p
 # Password: keycloak_password
+
 ```
 
 ```sql
--- Check database and tables
+-- Verify Keycloak tables exist
 SHOW DATABASES;
 USE keycloak;
 SHOW TABLES;
 
--- Should see many Keycloak tables:
--- REALM, USER_ENTITY, CLIENT, ROLE, MIGRATION_MODEL, etc.
 ```
 
-**📌 If tables exist → Keycloak is using MySQL, not H2**
+### **3. Create Test Environment**
 
----
+### **Create Realm**
 
-### 4️⃣ Test Keycloak UI
+1. Login Admin Console: [http://localhost:8080/auth](http://localhost:8080/auth) (`admin` / `admin_password`)
+2. **Master** dropdown → **Add realm**
+3. Name: `test-realm` → **Create**
 
-1. **Access Admin Console:**
-   ```
-   http://localhost:8080/auth
-   ```
+### **Create Client**
 
-2. **Login:**
-   - User: `admin`
-   - Password: `admin_password`
-
-**✅ Successful login → Keycloak working properly**
-
----
-
-### 5️⃣ Test Basic Functions (Important for upgrade)
-
-#### 🔹 5.1 Create New Realm
-1. Click **Master** dropdown
-2. **Add realm**
-3. Name: `test-realm`
-4. **Create**
-
-**✅ Realm created successfully → DB write OK**
-
-#### 🔹 5.2 Create User
-1. **Users** → **Add user**
-2. Username: `user1`
-3. **Save**
-4. **Credentials** → Set password: `test123`
-
-**✅ User created successfully → USER_ENTITY table OK**
-
-#### 🔹 5.3 Create Client
 1. **Clients** → **Create**
 2. Client ID: `test-client`
-3. Protocol: `openid-connect`
-4. **Save**
+3. **Save** → **Settings** tab:
+    - Access Type: `public`
+    - Direct Access Grants: `ON`
 
-**✅ Client created successfully → CLIENT table OK**
+### **Create Test User**
 
-#### 🔹 5.4 Test Login Flow
-```
-http://localhost:8080/auth/realms/test-realm/account
-```
-- Login: `user1` / `test123`
+1. **Users** → **Add user**
+2. Username: `customer1` → **Save**
+3. **Credentials** tab: Set password `test123`
+4. **Attributes** tab:
+    - `cif`: `CIF001234567`
+    - `branch`: `MAIN_BRANCH`
 
-**✅ Login successful → Auth flow OK**
-
----
-
-### 6️⃣ Test Restart (EXTREMELY IMPORTANT)
+### **4. Test Login Flow**
 
 ```bash
-# Restart everything
-docker-compose restart
-
-# Wait for services to come up
-docker ps
+# Test user login
+curl -X POST http://localhost:8080/auth/realms/test-realm/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password" \
+  -d "client_id=test-client" \
+  -d "username=customer1" \
+  -d "password=test123"
 ```
 
-**Check after restart:**
-1. Login to admin console again
-2. Is `test-realm` still there?
-3. Is user `user1` still there?
+![Token Response](images/token-response.png)
 
-**✅ If everything persists → MySQL volume OK, lab is stable**
+**✅ Success:** Returns JSON with `access_token`
 
----
+## **⚙️ Custom Mapper Configuration**
 
-### 7️⃣ Advanced Test - Schema Version
+### **Step 1: Add Mapper to Client**
 
-```sql
--- Check schema version (important for upgrade)
-SELECT * FROM MIGRATION_MODEL;
-```
+1. **Clients** → Select `test-client` → **Mappers**
+2. **Create** → **Mapper Type**: `Customer Information File`
+3. **Name**: `cif-mapper`
+4. **Token Claim Name**: `cif`
+5. **Add to ID token**: ON
+6. **Add to access token**: ON
+7. **Save**
 
-**📌 Remember this result to compare after upgrade**
+### **Step 2: Test Token with Custom Claims**
 
----
-
-## 🛠️ Troubleshooting
-
-### Keycloak won't start
 ```bash
-# View detailed logs
+# Get token and check claims
+curl -X POST http://localhost:8080/auth/realms/test-realm/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password" \
+  -d "client_id=test-client" \
+  -d "username=customer1" \
+  -d "password=test123"
+```
+
+**Verify token:**
+
+1. Copy `access_token` from response
+2. Paste into [https://it-tools.tech/jwt-parser](https://it-tools.tech/jwt-parser)
+3. Check payload contains fields:
+
+    
+    ```json
+    {
+      "cif": ["CIF001234567"],
+      "preferred_username": "customer1",
+      ...
+    }
+    
+    ```
+    
+
+![JWT Token Claims](images/jwt-token-claims.png)
+
+→ Customer ID claim is present
+
+## **🔧 Troubleshooting**
+
+### **Keycloak Won't Start**
+
+```bash
+# Check logs
 docker logs keycloak
 
-# Common issue: MySQL not ready yet
-# Solution: wait longer or restart
+# Common fix: Restart
 docker-compose restart keycloak
+
+# Clean restart if needed
+docker-compose down && docker-compose up -d
+
 ```
 
-### MySQL connection failed
+### **MySQL Connection Issues**
+
 ```bash
-# Check if MySQL is running
+# Test MySQL connection
 docker exec -it keycloak-mysql mysql -u root -p
 # Password: supersecretpassword
 
-# Check keycloak_user exists
+# Check keycloak user
 SELECT User, Host FROM mysql.user WHERE User = 'keycloak_user';
+
 ```
 
-### Port conflict
+### **Custom Mapper Issues**
+
+### **Error: Mapper not appearing in Admin Console**
+
+**Cause:** JAR not deployed or Keycloak not loaded
+
 ```bash
-# If port 8080 or 3306 is occupied
-# Edit docker-compose.yml:
-# ports:
-#   - "8081:8080"  # Keycloak
-#   - "3307:3306"  # MySQL
+# Check JAR deployment
+docker exec keycloak ls -la /opt/jboss/keycloak/standalone/deployments/
+
+# Check deployment logs
+docker logs keycloak | grep -i "deploy"
+
+# Rebuild mapper
+docker-compose --profile build run --rm build-mapper
+docker-compose restart keycloak
+
 ```
 
----
+### **Error: Token missing claims**
 
-## 📊 Additional Tests
+**Causes:**
 
-### Test Performance
-```bash
-# Check resource usage
-docker stats
+- User missing corresponding attribute
+- Mapper not added to client
+- Mapper not enabled
 
-# Test concurrent connections
-curl -I http://localhost:8080/auth
+**How to check:**
+
+1. Verify user has attribute:
+    - Users → Select user → Attributes
+    - Add `cif` = `CIF001234567`
+2. Check mapper in client:
+    - Clients → Select client → Mappers
+    - Must have `Customer Information File` mapper
+3. Check mapper configuration:
+    - "Add to access token": ON
+    - "Add to ID token": ON
+
+### **Port Conflicts**
+
+Edit `docker-compose.yml` if ports are occupied:
+
+```yaml
+ports:
+  - "8081:8080"  # Keycloak
+  - "3307:3306"  # MySQL
+
 ```
 
-### Test Backup/Restore
-```bash
-# Backup MySQL data
-docker exec keycloak-mysql mysqldump -u keycloak_user -p keycloak > backup.sql
+## **📝 Configuration Details**
 
-# Test restore (on new container)
-docker exec -i keycloak-mysql mysql -u keycloak_user -p keycloak < backup.sql
-```
+### **System Versions**
 
-### Test Network Connectivity
-```bash
-# Test from keycloak container to mysql
-docker exec keycloak ping mysql
+- **Keycloak:** 12.0.4 (WildFly-based)
+- **MySQL:** 8.0.23
+- **Java:** 11
+- **Maven:** 3.8.4
 
-# Test MySQL port from host
-telnet localhost 3306
-```
+### **Network & Storage**
 
----
+- **Network:** `keycloak-net` (bridge)
+- **MySQL Volume:** `mysql_data` (persistent)
+- **Custom Mappers:** `./deployments/` (mounted)
 
-## 🎯 Conclusion
+### **Best Practices**
 
-After completing all tests:
+1. **Always check logs after deployment:**
+    
+    ```bash
+    docker logs keycloak | grep -i "deploy"
+    
+    ```
+    
+2. **Test mapper before production:**
+    - Create separate test realm
+    - Test with different user types
+    - Verify tokens on jwt.io
+3. **Backup before updates:**
+    
+    ```bash
+    # Backup deployments
+    cp -r deployments/ deployments-backup/
+    
+    # Backup database
+    docker exec keycloak-mysql mysqldump -u keycloak_user -p keycloak > backup.sql
+    
+    ```
+    
+4. **Monitor performance:**
+    - Custom mappers may affect token generation speed
+    - Check logs for performance issues
 
-✅ **Production-ready Keycloak 12 + MySQL 8 lab**  
-✅ **Real data in database**  
-✅ **Ready for upgrade testing**
-
-### Next Steps:
-1. **Freeze this lab** (backup volume)
-2. **Clone DB** for testing
-3. **Test migration** step by step: 12 → 17 → 20 → 26
-
----
-
-## 📝 Configuration Details
-
-### Database Connection
-- **Host:** mysql (container name)
-- **Port:** 3306
-- **Database:** keycloak
-- **User:** keycloak_user
-- **Password:** keycloak_password
-- **MySQL Version:** 8.0.23
-- **Root Password:** supersecretpassword
-- **Authentication:** mysql_native_password
-
-### Keycloak Admin
-- **URL:** http://localhost:8080/auth
-- **Username:** admin
-- **Password:** admin_password
-- **Keycloak Version:** 12.0.4 (WildFly-based)
-- **Image:** quay.io/keycloak/keycloak:12.0.4
-
-### Volumes
-- **MySQL Data:** `mysql_data` (persistent)
-- **Location:** Docker managed volume
-- **Network:** `keycloak-net` (bridge driver)
-
----
-
-## 🔧 Commands Cheat Sheet
+## **🔧 Common Commands**
 
 ```bash
-# Start
+# Build mapper
+docker-compose --profile build run --rm build-mapper
+
+# Start/Stop
 docker-compose up -d
-
-# Stop
 docker-compose down
-
-# Restart
-docker-compose restart
 
 # Logs
 docker logs -f keycloak
@@ -293,23 +377,44 @@ docker logs -f keycloak-mysql
 # MySQL CLI
 docker exec -it keycloak-mysql mysql -u keycloak_user -p
 
-# MySQL CLI as root
-docker exec -it keycloak-mysql mysql -u root -p
+# Check container status
+docker-compose ps
+
+# Check disk usage
+docker system df
 
 # Clean up (⚠️ Data loss)
 docker-compose down -v
+docker system prune -f
+
+# Get admin token for API calls
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/auth/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password" \
+  -d "client_id=admin-cli" \
+  -d "username=admin" \
+  -d "password=admin_password" | jq -r '.access_token')
+
+# Test token decode
+echo $TOKEN | cut -d. -f2 | base64 -d | jq .
+
 ```
 
----
+## **✅ Test Checklist**
 
-## 🔄 MySQL 8 Specific Notes
+- [ ]  Container health: `docker ps` shows both containers Up
+- [ ]  Keycloak logs: "Using MySQL database" + "started"
+- [ ]  Custom mapper: "Deployed aje-claim-1.0-SNAPSHOT.jar"
+- [ ]  Admin console: Login successful with `admin`/`admin_password`
+- [ ]  Test realm: `test-realm` created successfully
+- [ ]  Test client: `test-client` with Direct Access Grants ON
+- [ ]  Test user: `customer1` with password `test123`
+- [ ]  User attributes: `cif` = `CIF001234567`, `branch` = `MAIN_BRANCH`
+- [ ]  Mappers added: Branch mapper and CIF mapper in client
+- [ ]  Token test: Login returns access_token
+- [ ]  Token claims: JWT contains `branch` and `customer_id` fields
+- [ ]  Database persistence: Data survives container restart
 
-### Authentication Plugin
-- Uses `mysql_native_password` for compatibility with Keycloak 12
-- Binds to `0.0.0.0` for container networking
-- Root access from any host (`MYSQL_ROOT_HOST: '%'`)
+## **🎯 Next Steps**
 
-### Compatibility
-- MySQL 8.0.23 is fully compatible with Keycloak 12 WildFly
-- Uses `com.mysql.cj.jdbc.Driver` (Connector/J 8.x)
-- UTF8MB4 charset support for full Unicode compatibility
+1. **Plan upgrade path** - 12 → 17 → 20 → 26
