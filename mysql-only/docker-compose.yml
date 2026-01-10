@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.0.23
+    container_name: keycloak-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecretpassword
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak_user
+      MYSQL_PASSWORD: keycloak_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - keycloak-net
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  keycloak-net:
+    driver: bridge

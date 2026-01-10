@@ -1,0 +1,40 @@
+# Docker Compose for Keycloak with External MySQL Database
+# Purpose: Keycloak only setup connecting to external MySQL (e.g., from K8s or separate container)
+# Usage: For testing Keycloak with external database connection
+# Note: DB_ADDR points to external MySQL IP (192.168.10.100)
+
+services:
+
+
+  # Service to build the custom token mapper JAR
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:12.0.4
+    container_name: keycloak
+    restart: always
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: 192.168.10.100
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      JDBC_PARAMS: "connectTimeout=30000"
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
+    volumes:
+      - ./deployments:/opt/jboss/keycloak/standalone/deployments
+    ports:
+      - "8080:8080"
+    # depends_on:
+    #   mysql:
+    #     condition: service_healthy
+    networks:
+      - keycloak-net
+
+# volumes:
+#   mysql_data:
+#     driver: local
+
+networks:
+  keycloak-net:
+    driver: bridge

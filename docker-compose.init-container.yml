@@ -1,4 +1,8 @@
-
+# Docker Compose for Keycloak + MySQL with Init Container Deployment
+# Purpose: Modern approach using init container to copy mappers from registry image
+# Usage: Simulates K8s init container pattern in Docker Compose
+# Commands: docker-compose up -d
+# Note: Requires chucthien03/custom-mapper-registry image to be available
 
 services:
   mysql:
@@ -21,17 +25,15 @@ services:
       timeout: 20s
       retries: 10
 
-  # Service to build the custom token mapper JAR
-  build-mapper:
-    build:
-      context: ./aje-keycloak-token-mapper-k8s-prod
-      dockerfile: Dockerfile
-      target: builder
+  # Init container to copy mappers from registry image
+  mapper-init:
+    image: chucthien03/custom-mapper-registry
+    container_name: mapper-init
+    command: sh -c "cp /opt/mappers/*.jar /shared-mappers/ && echo 'Mappers copied successfully'"
     volumes:
-      - ./deployments:/output
-    command: sh -c "cp /app/target/*.jar /output/ && echo 'JAR copied to deployments/'"
-    profiles:
-      - build
+      - shared_mappers:/shared-mappers
+    networks:
+      - keycloak-net
 
   keycloak:
     image: quay.io/keycloak/keycloak:12.0.4
@@ -47,17 +49,21 @@ services:
       KEYCLOAK_USER: admin
       KEYCLOAK_PASSWORD: admin_password
     volumes:
-      - ./deployments:/opt/jboss/keycloak/standalone/deployments
+      - shared_mappers:/opt/jboss/keycloak/standalone/deployments
     ports:
       - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
+      mapper-init:
+        condition: service_completed_successfully
     networks:
       - keycloak-net
 
 volumes:
   mysql_data:
+    driver: local
+  shared_mappers:
     driver: local
 
 networks:

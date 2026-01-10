@@ -18,10 +18,14 @@ keycloak-mysql/
 │   │   ├── services/org.keycloak.protocol.ProtocolMapper  # Mapper registration
 │   │   └── jboss-deployment-structure.xml # JBoss configuration
 │   ├── pom.xml                          # Maven config
-│   └── Dockerfile                       # Build container
-├── deployments/                         # JAR files for Keycloak
-├── images/                             # Documentation images
-├── docker-compose.yml                   # Main compose file
+│   ├── Dockerfile.registry              # Registry image build
+│   └── Dockerfile.export                # Export artifacts build
+├── k8s-manifests-basic/                 # Basic K8s deployment
+├── k8s-manifests-init-container/        # Init container K8s deployment
+├── mysql-only/                          # MySQL standalone
+├── docker-compose.init-container.yml    # Main compose file
+├── docker-compose.local-mount.yml       # Local mount approach
+├── docker-compose.external-db.yml       # External DB approach
 ├── README.md                           # This file
 └── .gitignore                          # Git ignore rules
 
@@ -53,18 +57,11 @@ keycloak-mysql/
 
 ## **🚀 Quick Start**
 
-### **Step 1: Build Custom Mapper**
+### **Step 1: Start Services**
 
 ```bash
-# Build custom token mapper JAR
-docker-compose --profile build run --rm build-mapper
-```
-
-### **Step 2: Start Services**
-
-```bash
-# Start Keycloak + MySQL
-docker-compose up -d
+# Start Keycloak + MySQL with init container
+docker-compose -f docker-compose.init-container.yml up -d
 
 # Check containers status
 docker ps
@@ -74,13 +71,14 @@ docker ps
 **Expected result:**
 
 - `keycloak-mysql` → **Up**
+- `mapper-init` → **Exited (0)**
 - `keycloak` → **Up**
 
 ![Containers Status](images/containers-status.png)
 
 → MySQL and Keycloak are up and running
 
-### **Step 3: Access Keycloak**
+### **Step 2: Access Keycloak**
 
 - **URL:** [http://localhost:8080/auth](http://localhost:8080/auth)
 - **Login:** `admin` / `admin_password`
@@ -133,6 +131,7 @@ docker logs -f keycloak
 Using MySQL database
 Keycloak 12.0.4 (WildFly Core 13.0.3.Final) started
 Deployed "aje-claim-1.0-SNAPSHOT.jar"
+Mappers copied successfully
 
 ```
 
@@ -280,9 +279,11 @@ docker exec keycloak ls -la /opt/jboss/keycloak/standalone/deployments/
 # Check deployment logs
 docker logs keycloak | grep -i "deploy"
 
-# Rebuild mapper
-docker-compose --profile build run --rm build-mapper
-docker-compose restart keycloak
+# Check init container logs
+docker logs mapper-init
+
+# Restart services if needed
+docker-compose -f docker-compose.init-container.yml restart keycloak
 
 ```
 
@@ -330,7 +331,7 @@ ports:
 
 - **Network:** `keycloak-net` (bridge)
 - **MySQL Volume:** `mysql_data` (persistent)
-- **Custom Mappers:** `./deployments/` (mounted)
+- **Custom Mappers:** `shared_mappers` (init container)
 
 ### **Best Practices**
 
@@ -363,28 +364,26 @@ ports:
 ## **🔧 Common Commands**
 
 ```bash
-# Build mapper
-docker-compose --profile build run --rm build-mapper
-
 # Start/Stop
-docker-compose up -d
-docker-compose down
+docker-compose -f docker-compose.init-container.yml up -d
+docker-compose -f docker-compose.init-container.yml down
 
 # Logs
 docker logs -f keycloak
 docker logs -f keycloak-mysql
+docker logs mapper-init
 
 # MySQL CLI
 docker exec -it keycloak-mysql mysql -u keycloak_user -p
 
 # Check container status
-docker-compose ps
+docker-compose -f docker-compose.init-container.yml ps
 
 # Check disk usage
 docker system df
 
 # Clean up (⚠️ Data loss)
-docker-compose down -v
+docker-compose -f docker-compose.init-container.yml down -v
 docker system prune -f
 
 # Get admin token for API calls
@@ -402,7 +401,8 @@ echo $TOKEN | cut -d. -f2 | base64 -d | jq .
 
 ## **✅ Test Checklist**
 
-- [ ]  Container health: `docker ps` shows both containers Up
+- [ ]  Container health: `docker ps` shows MySQL and Keycloak Up, mapper-init Exited(0)
+- [ ]  Init container: "Mappers copied successfully" in mapper-init logs
 - [ ]  Keycloak logs: "Using MySQL database" + "started"
 - [ ]  Custom mapper: "Deployed aje-claim-1.0-SNAPSHOT.jar"
 - [ ]  Admin console: Login successful with `admin`/`admin_password`

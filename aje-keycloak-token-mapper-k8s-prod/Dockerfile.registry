@@ -1,0 +1,18 @@
+# Multi-stage Dockerfile for Keycloak Custom Token Mapper
+# Purpose: Build JAR artifacts and create Alpine-based registry image for K8s deployment
+# Usage: Used as init container to copy mappers to Keycloak deployment folder
+
+FROM maven:3.8.4-openjdk-11-slim AS builder
+
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+
+# Build custom token mapper JAR files
+RUN mvn clean package -DskipTests
+
+# Final stage: Lightweight Alpine image containing only artifacts
+FROM alpine:latest
+RUN mkdir -p /opt/mappers
+COPY --from=builder /app/target/*.jar /opt/mappers/
+CMD ["sh", "-c", "echo 'Token mapper artifacts ready:' && ls -la /opt/mappers/ && sleep infinity"]

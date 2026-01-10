@@ -18,6 +18,10 @@ Thumbs.db
 # Logs
 *.log
 
-# internal source code
-aje-keycloak-token-mapper-k8s-prod/
+# Internal source code (allow Dockerfiles)
+
+aje-keycloak-token-mapper-k8s-prod/src
+aje-keycloak-token-mapper-k8s-prod/.gitignore
+aje-keycloak-token-mapper-k8s-prod/pom.xml
+
 deployments/

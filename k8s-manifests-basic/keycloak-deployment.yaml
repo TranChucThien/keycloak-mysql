@@ -1,3 +1,8 @@
+# Basic Keycloak Deployment without Custom Mappers
+# Purpose: Simple K8s deployment for testing Keycloak functionality
+# Usage: kubectl apply -f k8s-manifests-basic/
+# Note: No custom mappers, only standard Keycloak features
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
