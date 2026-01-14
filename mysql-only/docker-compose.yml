@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0.23
-    container_name: keycloak-mysql
+    container_name: mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: supersecretpassword

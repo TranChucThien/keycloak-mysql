@@ -19,16 +19,9 @@ spec:
       labels:
         app: keycloak
     spec:
-      initContainers:
-      - name: copy-mappers
-        image: chucthien03/custom-mapper-registry
-        command: ['sh', '-c', 'cp /opt/mappers/*.jar /shared-mappers/']
-        volumeMounts:
-        - name: shared-mappers
-          mountPath: /shared-mappers
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:12.0.4
+        image:  chucthien03/keycloak:15
         ports:
         - containerPort: 8080
         envFrom:
@@ -36,12 +29,7 @@ spec:
             name: keycloak-config
         - secretRef:
             name: keycloak-secret
-        volumeMounts:
-        - name: shared-mappers
-          mountPath: /opt/jboss/keycloak/standalone/deployments
-      volumes:
-      - name: shared-mappers
-        emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service

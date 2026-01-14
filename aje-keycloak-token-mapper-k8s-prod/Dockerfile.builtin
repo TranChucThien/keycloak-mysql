@@ -1,0 +1,19 @@
+# Multi-stage Dockerfile: Build SPI và tích hợp vào Keycloak image
+FROM maven:3.8.4-openjdk-11-slim AS builder
+
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+
+# Build custom token mapper JAR
+RUN mvn clean package -DskipTests
+
+# Final stage: Keycloak với SPI tích hợp sẵn
+FROM quay.io/keycloak/keycloak:15.1.1
+
+# Copy SPI JAR vào deployments (giống init container approach)
+USER root
+COPY --from=builder /app/target/*.jar /opt/jboss/keycloak/standalone/deployments/
+RUN chown -R jboss:jboss /opt/jboss/keycloak/standalone/deployments/
+
+USER jboss

@@ -15,4 +15,4 @@ RUN mvn clean package -DskipTests
 FROM alpine:latest
 RUN mkdir -p /opt/mappers
 COPY --from=builder /app/target/*.jar /opt/mappers/
-CMD ["sh", "-c", "echo 'Token mapper artifacts ready:' && ls -la /opt/mappers/ && sleep infinity"]
+CMD ["sh", "-c", "echo 'Token mapper artifacts ready:' && ls -la /opt/mappers/ && sleep infinity"].

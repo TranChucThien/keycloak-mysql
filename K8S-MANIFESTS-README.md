@@ -1,27 +1,42 @@
-# Kubernetes Manifests
+# Kubernetes Manifests for Keycloak 15 with Built-in Custom Mappers
 
-## Folders Overview
+## 📁 Folder: k8s-manifests-rebuild/
 
-### k8s-manifests-basic/
-- **Purpose**: Basic Keycloak deployment without custom mappers
-- **Use case**: Testing standard Keycloak functionality
-- **Features**: Simple deployment with ConfigMap and Secret
+**Purpose:** Production deployment with custom token mappers built into Keycloak image
 
-### k8s-manifests-init-container/
-- **Purpose**: Advanced deployment with custom token mappers
-- **Use case**: Production-ready setup with custom claims
-- **Features**: Init container pattern to copy mappers from registry image
+**Image:** `chucthien03/keycloak:15` (built from Dockerfile.builtin)
 
-## Deployment Commands
+**Approach:** JAR files in `/opt/jboss/keycloak/standalone/deployments/`
+
+**Files:**
+- `keycloak-deployment.yaml` - Deployment + NodePort Service
+- `keycloak-configmap.yaml` - Database configuration
+- `keycloak-secret.yaml` - Credentials (base64 encoded)
+
+## 🚀 Deployment
 
 ```bash
-# Basic deployment
-kubectl apply -f k8s-manifests-basic/
+# Deploy all manifests
+kubectl apply -f k8s-manifests-rebuild/
 
-# Init container deployment  
-kubectl apply -f k8s-manifests-init-container/
+# Check status
+kubectl get pods -l app=keycloak
+kubectl logs -f deployment/keycloak
+
+# Access Keycloak
+# NodePort: http://<node-ip>:30080/auth
 ```
 
-## Prerequisites
-- External MySQL database running
-- For init-container: `chucthien03/custom-mapper-registry` image available
+## 🔧 Configuration
+
+**Database:** External MySQL at 172.28.174.197:3306
+
+**Credentials:**
+- Admin: `admin` / `admin_password`
+- DB User: `keycloak_user` / `keycloak_password`
+
+## 📚 Archive
+
+Old approaches moved to `archive/`:
+- `k8s-manifests-basic/` - Basic deployment without mappers
+- `k8s-manifests-init-container/` - Init container pattern
