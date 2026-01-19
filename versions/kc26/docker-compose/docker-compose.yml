@@ -10,14 +10,19 @@ services:
       MYSQL_USER: keycloak_user
       MYSQL_PASSWORD: keycloak_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - keycloak-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   keycloak:
-    image: chucthien03/keycloak:26
+    image: chucthien03/keycloak:26-test
     container_name: keycloak-kc26
     environment:
       KC_DB: mysql
@@ -34,7 +39,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - keycloak-network
 

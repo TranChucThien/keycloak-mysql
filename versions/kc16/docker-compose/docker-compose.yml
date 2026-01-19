@@ -15,6 +15,11 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - keycloak-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   keycloak:
     image: chucthien03/keycloak:16
@@ -31,7 +36,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - keycloak-network
 
