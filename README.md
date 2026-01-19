@@ -1,189 +1,179 @@
-# Keycloak 15 + MySQL 8 with Built-in Custom Mappers
+# Keycloak + MySQL with Custom Token Mappers
 
-## **🎯 Purpose**
+Production-ready Keycloak with MySQL and custom token mappers built into the image.
 
-Production-ready Keycloak 15 with MySQL 8 and custom token mappers built into the image.
+## 📊 Current Production
 
-## **📁 Project Structure**
+- **Version**: Keycloak 18.0.0
+- **Image**: `chucthien03/keycloak:18-prod`
+- **Java**: 11
+- **Quarkus**: 2.7.5
+- **Database**: MySQL 8.0.23 @ 172.28.174.197:3306
+- **K8s**: NodePort 30080
+- **Mappers**: 4/4 working (Branch, CIF, UserLevel, Permissions)
+
+## 📁 Project Structure
 
 ```
 keycloak-mysql/
-├── aje-keycloak-token-mapper-k8s-prod/  # Custom mapper source
-│   ├── src/main/java/                   # Mapper implementations
-│   ├── Dockerfile.builtin               # Build Keycloak + mappers image
-│   └── pom.xml                          # Maven config
-├── k8s-manifests-rebuild/               # K8s deployment files
-│   ├── keycloak-deployment.yaml         # Deployment + Service
-│   ├── keycloak-configmap.yaml          # DB config
-│   └── keycloak-secret.yaml             # Credentials
-├── docker-compose.yml                   # Docker Compose setup
-└── archive/                             # Old approaches (init-container, etc)
+├── versions/
+│   ├── kc12/              # Keycloak 12 (WildFly, Java 11)
+│   │   ├── mapper/        # Custom token mappers
+│   │   ├── k8s/          # Kubernetes manifests
+│   │   ├── docker-compose/ # Docker Compose setup
+│   │   └── README.md     # Version-specific guide
+│   │
+│   ├── kc15/              # Keycloak 15 (WildFly, Java 11)
+│   │   ├── mapper/        # Custom token mappers
+│   │   ├── k8s/          # Kubernetes manifests
+│   │   ├── docker-compose/ # Docker Compose setup
+│   │   └── README.md     # Version-specific guide
+│   │
+│   ├── kc16/              # Keycloak 16 (WildFly, Java 11)
+│   │   ├── mapper/        # Custom token mappers
+│   │   ├── k8s/          # Kubernetes manifests
+│   │   ├── docker-compose/ # Docker Compose setup
+│   │   └── README.md     # Version-specific guide
+│   │
+│   ├── kc18/              # Keycloak 18 (Quarkus 2.x, Java 11) ✅ CURRENT
+│   │   ├── mapper/        # Custom token mappers
+│   │   ├── k8s/          # Kubernetes manifests
+│   │   ├── docker-compose/ # Docker Compose setup
+│   │   └── README.md     # Version-specific guide
+│   │
+│   ├── kc21/              # Keycloak 21 (Quarkus 2.13, Java 11)
+│   │   ├── mapper/        # Updated mappers (Stream API)
+│   │   ├── k8s/          # Kubernetes manifests
+│   │   ├── docker-compose/ # Docker Compose setup
+│   │   └── README.md     # Version-specific guide
+│   │
+│   └── kc26/              # Keycloak 26 (Quarkus 3.x, Java 17)
+│       ├── mapper/        # Custom token mappers
+│       ├── k8s/          # Kubernetes manifests
+│       ├── docker-compose/ # Docker Compose setup
+│       └── README.md     # Version-specific guide
+│
+├── archive/               # Old approaches and deprecated versions
+├── images/               # Documentation screenshots
+├── scripts/              # Utility scripts
+├── MIGRATION_QUICK_REF.md # Quick migration reference
+├── UPGRADE_NOTES.md      # Full upgrade history
+└── README.md            # This file
 ```
 
-## **🔑 Credentials**
+## 🔑 Credentials
 
-### **Keycloak Admin**
-- **URL:** http://localhost:8080/auth
-- **Username:** `admin`
-- **Password:** `admin_password`
+### Keycloak Admin
+- **URL**: http://localhost:8080 (Docker) or http://<node-ip>:30080 (K8s)
+- **Username**: `admin`
+- **Password**: `admin_password`
 
-### **MySQL Database**
-- **Host:** 172.28.174.197:3306
-- **Database:** `keycloak`
-- **User:** `keycloak_user`
-- **Password:** `keycloak_password`
+### MySQL Database
+- **Host**: 172.28.174.197:3306
+- **Database**: `keycloak`
+- **User**: `keycloak_user`
+- **Password**: `keycloak_password`
 
-## **🚀 Quick Start**
+## 🚀 Quick Start (KC18 - Current)
 
-### **Option 1: Kubernetes Deployment**
+### Option 1: Kubernetes Deployment
 
 ```bash
-# Deploy to K8s
-kubectl apply -f k8s-manifests-rebuild/
-
-# Check status
-kubectl get pods
+cd versions/kc18/k8s
+kubectl apply -f .
 kubectl logs -f deployment/keycloak
-
-# Access Keycloak
-# NodePort: http://<node-ip>:30080/auth
 ```
 
-### **Option 2: Docker Compose**
+### Option 2: Docker Compose
 
 ```bash
-# Start services
+cd versions/kc18/docker-compose
 docker-compose up -d
-
-# Check logs
-docker logs -f keycloak
-
-# Access: http://localhost:8080/auth
+docker logs -f keycloak-kc18
 ```
 
-## **🔨 Build Custom Image**
+### Build Custom Image
 
 ```bash
-cd aje-keycloak-token-mapper-k8s-prod
-
-# Build image
-docker build -f Dockerfile.builtin -t chucthien03/keycloak:15 .
-
-# Push to registry
-docker push chucthien03/keycloak:15
+cd versions/kc18/mapper
+docker build -f Dockerfile.builtin -t chucthien03/keycloak:18-prod .
+docker push chucthien03/keycloak:18-prod
 ```
 
-## **🧪 Custom Token Mappers**
+## 🧪 Custom Token Mappers
 
-### **Available Mappers**
+### Available Mappers
 - **BranchOIDCProtocolMapper** - Adds `branch` claim
 - **CifOIDCProtocolMapper** - Adds `customer_id` claim  
 - **UserLevelOIDCProtocolMapper** - Adds `user_level` claim
 - **PermissionsOIDCProtocolMapper** - Adds `permissions` claim
 
-### **How It Works**
+### How It Works
 1. Maven builds mapper JAR from source
-2. Dockerfile copies JAR to `/opt/jboss/keycloak/standalone/deployments/`
+2. Dockerfile copies JAR to `/opt/keycloak/providers/`
 3. Keycloak auto-deploys on startup
 4. Mappers available in Admin Console
 
-## **✅ Testing**
+## 📊 Version History
 
-### **1. Create Test Realm**
-1. Login: http://localhost:8080/auth (`admin`/`admin_password`)
-2. Master → Add realm → Name: `test-realm`
+| Version | Java | Runtime | Status | Key Changes |
+|---------|------|---------|--------|-------------|
+| KC 12 | 11 | WildFly | Stable | Initial version |
+| KC 15 | 11 | WildFly | Stable | Hot-deploy pattern |
+| KC 16 | 11 | WildFly | Stable | Last WildFly version |
+| KC 18 | 11 | Quarkus 2.7.5 | **Current** ✅ | WildFly → Quarkus |
+| KC 21 | 11 | Quarkus 2.13.8 | Available | Stream API required |
+| KC 26 | 17 | Quarkus 3.x | Available | Java 17 required |
 
-### **2. Create Client**
-1. Clients → Create → Client ID: `test-client`
-2. Settings: Access Type = `public`, Direct Access Grants = `ON`
+## 🔄 Migration Guides
 
-### **3. Create User**
-1. Users → Add user → Username: `customer1`
-2. Credentials → Set password: `test123`
-3. Attributes → Add:
-   - `cif`: `CIF001234567`
-   - `branch`: `MAIN_BRANCH`
+- **KC 12**: See `versions/kc12/README.md`
+- **KC 15**: See `versions/kc15/README.md`
+- **KC 16**: See `versions/kc16/README.md`
+- **KC 18**: See `versions/kc18/README.md` + `versions/kc18/mapper/README.md`
+- **KC 21**: See `versions/kc21/mapper/MIGRATION_KC21.md`
+- **KC 26**: See `versions/kc26/mapper/MIGRATION_KC26.md`
+- **Quick Ref**: See `MIGRATION_QUICK_REF.md`
+- **Full History**: See `UPGRADE_NOTES.md`
 
-### **4. Add Mapper**
-1. Clients → test-client → Mappers → Create
-2. Mapper Type: `Customer Information File`
-3. Token Claim Name: `cif`
-4. Add to tokens: ON
+## 🔧 Working with Different Versions
 
-### **5. Test Token**
-
-```bash
-curl -X POST http://localhost:8080/auth/realms/test-realm/protocol/openid-connect/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password" \
-  -d "client_id=test-client" \
-  -d "username=customer1" \
-  -d "password=test123"
-```
-
-Decode token at https://jwt.io - should contain `cif` claim.
-
-## **🔧 Troubleshooting**
-
-### **Mapper Not Appearing**
+Each version folder is self-contained:
 
 ```bash
-# Check JAR deployed
-kubectl exec deployment/keycloak -- ls -la /opt/jboss/keycloak/standalone/deployments/
+# Switch to KC16
+cd versions/kc16
+kubectl apply -f k8s/
 
-# Check logs
-kubectl logs deployment/keycloak | grep -i deploy
+# Switch to KC18 (Current)
+cd versions/kc18
+kubectl apply -f k8s/
+
+# Switch to KC21
+cd versions/kc21
+kubectl apply -f k8s/
 ```
 
-### **DB Connection Failed**
+## 📝 Documentation
 
-```bash
-# Verify DB config
-kubectl get configmap keycloak-config -o yaml
+- **Main README**: This file
+- **Version READMEs**: `versions/kc{12,15,16,18,21,26}/README.md`
+- **Migration Quick Ref**: `MIGRATION_QUICK_REF.md`
+- **Full Upgrade Notes**: `UPGRADE_NOTES.md`
+- **K8s Manifests**: Each version has `k8s/README.md`
+- **Mapper Details**: Each version has `mapper/README.md`
 
-# Test DB connection
-mysql -h 172.28.174.197 -u keycloak_user -p
-```
+## 🎯 For New Users
 
-### **Migration Error (12→15 upgrade)**
+1. Start with current version: `cd versions/kc18`
+2. Read version README: `cat README.md`
+3. Choose deployment method (K8s or Docker Compose)
+4. Follow Quick Start instructions
 
-**Issue:** Old Dockerfile modified XML config causing migration failure
+## 🎯 For Migrations
 
-**Solution:** Current Dockerfile.builtin uses `deployments/` folder without XML modification
-
-## **📝 Technical Details**
-
-### **Why This Approach Works**
-
-**Previous Issue (KC 12→15 upgrade):**
-- JAR in `/opt/jboss/keycloak/providers/` 
-- XML config modified with `sed` commands
-- XML parsing failed → DB migration failed
-
-**Current Solution:**
-- JAR in `/opt/jboss/keycloak/standalone/deployments/`
-- No XML modification
-- Hot-deploy after DB migration completes
-
-### **Deployment Order**
-```
-1. Parse XML config
-2. Connect to DB
-3. Run schema migration
-4. Load deployments/ JARs
-5. Start server
-```
-
-## **🎯 Version Info**
-
-- **Keycloak:** 15.1.1
-- **MySQL:** 8.0.23
-- **Java:** 11
-- **Maven:** 3.8.4
-
-## **📚 Archive**
-
-Old deployment approaches moved to `archive/`:
-- Init container pattern
-- Local mount approach
-- Basic deployment without mappers
+1. Review `MIGRATION_QUICK_REF.md` for overview
+2. Check target version README for specific changes
+3. Read migration notes in mapper folder
+4. Test in non-production environment first
+5. Update `UPGRADE_NOTES.md` after completion
