@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-config
+data:
+  KC_DB: "mysql"
+  KC_DB_URL: "jdbc:mysql://172.28.174.197:3306/keycloak"
+  KC_HOSTNAME_STRICT: "false"
+  KC_HTTP_ENABLED: "true"
+  KC_PROXY: "edge"
+  KC_HOSTNAME_STRICT_BACKCHANNEL: "false"

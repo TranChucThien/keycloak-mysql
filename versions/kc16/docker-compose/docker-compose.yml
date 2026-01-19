@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.23
+    container_name: mysql-kc16
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak_user
+      MYSQL_PASSWORD: keycloak_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - keycloak-network
+
+  keycloak:
+    image: chucthien03/keycloak:16
+    container_name: keycloak-kc16
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: mysql
+      DB_PORT: 3306
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - keycloak-network
+
+volumes:
+  mysql_data:
+
+networks:
+  keycloak-network:
+    driver: bridge

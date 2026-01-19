@@ -1,0 +1,55 @@
+# Docker Compose for Keycloak 15 with Built-in Custom Mappers
+# Purpose: Run Keycloak with custom token mappers built into the image
+# Image: chucthien03/keycloak:15 (built from Dockerfile.builtin)
+# Approach: JAR files in /opt/jboss/keycloak/standalone/deployments/
+# Usage: docker-compose up -d
+# Access: http://localhost:8080/auth (admin/admin_password)
+
+version: '3.8'
+
+services:
+  keycloak-mysql:
+    image: mysql:8.0.23
+    container_name: keycloak-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecretpassword
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak_user
+      MYSQL_PASSWORD: keycloak_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - keycloak-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  keycloak:
+    # build:
+    #   context: ./aje-keycloak-token-mapper-k8s-prod
+    #   dockerfile: Dockerfile.builtin
+    image: chucthien03/keycloak:15
+    container_name: keycloak
+    environment:
+      DB_VENDOR: mysql
+      DB_ADDR: 172.28.174.197
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
+    ports:
+      - "8080:8080"
+    # depends_on:
+    #   keycloak-mysql:
+    #     condition: service_healthy
+    networks:
+      - keycloak-net
+
+volumes:
+  mysql_data:
+
+networks:
+  keycloak-net:
+    driver: bridge
