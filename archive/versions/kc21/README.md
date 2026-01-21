@@ -2,7 +2,7 @@
 
 ## 📊 Version Info
 - **Keycloak**: 21.1.2
-- **Java**: 17
+- **Java**: 11
 - **Quarkus**: 2.13.8
 - **Database**: MySQL 8.0.23
 - **Image**: `chucthien03/keycloak:21`
@@ -10,7 +10,6 @@
 ## 🔑 Key Changes from KC18
 - API Breaking Change: `getAttribute()` → `getAttributeStream()`
 - All 4 mappers updated to use Stream API
-- Java 11 → 17
 - Quarkus 2.7.5 → 2.13.8
 
 ## 📁 Structure

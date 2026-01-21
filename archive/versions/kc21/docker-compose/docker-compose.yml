@@ -1,9 +1,9 @@
-# Docker Compose for Keycloak 21 with Built-in Custom Mappers
+# Docker Compose for Keycloak 15 with Built-in Custom Mappers
 # Purpose: Run Keycloak with custom token mappers built into the image
-# Image: chucthien03/keycloak:21-prod (built from Dockerfile.builtin)
-# Approach: JAR files in /opt/keycloak/providers/
+# Image: chucthien03/keycloak:15 (built from Dockerfile.builtin)
+# Approach: JAR files in /opt/jboss/keycloak/standalone/deployments/
 # Usage: docker-compose up -d
-# Access: http://localhost:8080 (admin/admin_password)
+# Access: http://localhost:8080/auth (admin/admin_password)
 
 version: '3.8'
 
@@ -26,26 +26,24 @@ services:
       retries: 10
 
   keycloak:
-
-    image: chucthien03/keycloak:21.1.2
-    container_name: keycloak-kc21
+    # build:
+    #   context: ./aje-keycloak-token-mapper-k8s-prod
+    #   dockerfile: Dockerfile.builtin
+    image: chucthien03/keycloak:15
+    container_name: keycloak
     environment:
-      KC_DB: mysql
-      KC_DB_URL: jdbc:mysql://keycloak-mysql:3306/keycloak
-      KC_DB_USERNAME: keycloak_user
-      KC_DB_PASSWORD: keycloak_password
-      KC_HOSTNAME_STRICT: "false"
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY: edge
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin_password
-    command:
-      - start
+      DB_VENDOR: mysql
+      DB_ADDR: 172.28.174.197
+      DB_DATABASE: keycloak
+      DB_USER: keycloak_user
+      DB_PASSWORD: keycloak_password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
     ports:
       - "8080:8080"
-    depends_on:
-      keycloak-mysql:
-        condition: service_healthy
+    # depends_on:
+    #   keycloak-mysql:
+    #     condition: service_healthy
     networks:
       - keycloak-net
 

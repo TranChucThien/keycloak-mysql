@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-config
+data:
+  # Database configuration
+  KC_DB: "mysql"
+  KC_DB_URL: "jdbc:mysql://172.28.174.197:3306/keycloak"
+  
+  # Hostname configuration (disable strict validation for NodePort/HTTP access)
+  KC_HOSTNAME_STRICT: "false"                # Allow any hostname
+  KC_HOSTNAME_STRICT_HTTPS: "false"          # Allow HTTP in production mode (fixes blank page)
+  KC_HOSTNAME_STRICT_BACKCHANNEL: "false"    # Disable backchannel validation
+  
+  # HTTP/Proxy configuration
+  KC_HTTP_ENABLED: "true"                    # Enable HTTP (required for NodePort)
+  KC_PROXY: "edge"                           # Behind proxy/load balancer

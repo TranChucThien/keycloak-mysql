@@ -2,7 +2,7 @@
 
 # Setup script for Keycloak 18+ (Quarkus) without /auth prefix
 # Usage: ./setup-data-modern.sh [KEYCLOAK_URL]
-
+#KEYCLOAK_URL="${1:-http://localhost:8080}"
 KEYCLOAK_URL="${1:-http://192.168.10.142:30080}"
 REALM_NAME="test-realm"
 CLIENT_ID="test-client"

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: session-test-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: session-test
+  template:
+    metadata:
+      labels:
+        app: session-test
+    spec:
+      containers:
+      - name: app
+        image: chucthien03/keycloak-app-session-test:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: SECRET_KEY
+          value: "my-secret-key-12345"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak:8080"
+        - name: REALM
+          value: "test-realm"
+        - name: CLIENT_ID
+          value: "test-client"
+        - name: CLIENT_SECRET
+          value: "not-needed-for-public-client"
+        - name: REDIRECT_URI
+          value: "http://192.168.10.142:30500/callback"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: session-test-app
+spec:
+  type: NodePort
+  selector:
+    app: session-test
+  ports:
+  - port: 5000
+    targetPort: 5000
+    nodePort: 30500

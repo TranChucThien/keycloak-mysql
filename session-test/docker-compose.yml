@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  session-test-app:
+    image: chucthien03/keycloak-app-session-test:latest
+    container_name: session-test
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=my-secret-key-12345
+      - KEYCLOAK_URL=http://192.168.10.142:30080
+      - REALM=test-realm
+      - CLIENT_ID=test-client
+      - CLIENT_SECRET=not-needed-for-public-client
+      - REDIRECT_URI=http://localhost:5000/callback
+    restart: unless-stopped
