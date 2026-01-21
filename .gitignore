@@ -26,7 +26,14 @@ Thumbs.db
 *aje-keycloak*/pom.xml
 
 deployments/
-versions/kc12_uat/
-versions/kc26_uat/
+
+# UAT versions - không push
+*_uat/
+**/*_uat/
+
+# Mapper source code - không push
 mapper/
+**/mapper/
+
+# Archive
 archive/16-aje-keycloak-token-mapper-k8s-prod/
