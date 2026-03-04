@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-v26
+  namespace: keycloak
+  labels:
+    app.kubernetes.io/instance: keycloak-v26
+    app.kubernetes.io/name: keycloak-v26
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: keycloak-v26
+      app.kubernetes.io/name: keycloak-v26
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/proxyCPU: 20m
+        sidecar.istio.io/proxyCPULimit: 100m
+        sidecar.istio.io/proxyMemory: 50Mi
+        sidecar.istio.io/proxyMemoryLimit: 200Mi
+      labels:
+        app: keycloak-v26
+        app.kubernetes.io/instance: keycloak-v26
+        app.kubernetes.io/name: keycloak-v26
+    spec:
+      containers:
+      - args:
+        - start
+        - --optimized
+        env:
+        - name: ENV
+          value: staging
+        - name: KC_DB
+          value: mysql
+        - name: KC_DB_PASSWORD
+          value: <db_password>
+        - name: KC_DB_URL
+          value: jdbc:mysql://<db_host>:<db_port>/<db_name>
+        - name: KC_DB_USERNAME
+          value: <db_username>
+        - name: KC_HOSTNAME
+          value: <keycloak_hostname>
+        - name: KC_HOSTNAME_STRICT
+          value: "false"
+        - name: KC_HTTP_ENABLED
+          value: "true"
+        - name: KC_PROXY_HEADERS
+          value: xforwarded
+        - name: KEYCLOAK_ADMIN
+          value: <admin_username>
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          value: <admin_password>
+        - name: KC_LOG_LEVEL
+          value: DEBUG
+        - name: TZ
+          value: Asia/Ho_Chi_Minh
+        # Database Connection Pool
+        - name: KC_DB_POOL_INITIAL_SIZE
+          value: "20"
+        - name: KC_DB_POOL_MIN_SIZE
+          value: "20"
+        - name: KC_DB_POOL_MAX_SIZE
+          value: "20"
+        - name: KC_DB_POOL_MAX_LIFETIME
+          value: "27000"
+        # Distributed Caching
+        - name: KC_CACHE
+          value: ispn
+        - name: KC_CACHE_EMBEDDED_OFFLINE_SESSIONS_MAX_COUNT
+          value: "100000"
+        # Cache Owners (HA with 2 AZ)
+        - name: KC_SPI_CACHE_EMBEDDED_DEFAULT_SESSIONS_OWNERS
+          value: "2"
+        # Thread Pools & Performance
+        - name: KC_HTTP_POOL_MAX_THREADS
+          value: "50"
+        - name: KC_HTTP_MAX_QUEUED_REQUESTS
+          value: "1000"
+        # Monitoring & Metrics
+        - name: KC_METRICS_ENABLED
+          value: "true"
+        - name: KC_CACHE_METRICS_HISTOGRAMS_ENABLED
+          value: "false"
+        # # HTTP Optimization
+        # - name: KC_FEATURES
+        #   value: http-optimized-serializers
+        image: <registry_url>/keycloak:custom-26.5.1
+        imagePullPolicy: Always
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - sleep 15
+        name: keycloak-v26
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "1700m"
+            memory: "1250Mi"
+          limits:
+            cpu: "2600m"
+            memory: "1400Mi"
+      imagePullSecrets:
+      - name: regcred
+      nodeSelector:
+        app: api
+      serviceAccountName: keycloak-v26
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: "topology.kubernetes.io/zone"
+        whenUnsatisfiable: "ScheduleAnyway"
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: keycloak-v26
+            app.kubernetes.io/name: keycloak-v26
+      - maxSkew: 1
+        topologyKey: "kubernetes.io/hostname"
+        whenUnsatisfiable: "ScheduleAnyway"
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: keycloak-v26
+            app.kubernetes.io/name: keycloak-v26
